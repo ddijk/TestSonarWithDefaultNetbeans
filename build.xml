@@ -7,14 +7,22 @@
 <!-- the Compile on Save feature is turned off for the project. -->
 <!-- You can turn off the Compile on Save (or Deploy on Save) setting -->
 <!-- in the project's Project Properties dialog box.-->
-<project name="TestSonarWithDefaultNetbeans" default="default" basedir=".">
+<project xmlns:sonar="antlib:org.sonar.ant" name="TestSonarWithDefaultNetbeans" default="default" basedir=".">
     <description>Builds, tests, and runs the project TestSonarWithDefaultNetbeans.</description>
     <import file="nbproject/build-impl.xml"/>
+     <property file="sonar.properties" />
+
+   <path id="test.run.classpath">
+
+      <pathelement location="build/classes" />
+      <pathelement location="build/test/classes" />
+      <pathelement location="libs/junit/junit-4.10.jar" />
+  </path>
     <!--
 
-    There exist several targets which are by default empty and which can be 
-    used for execution of your tasks. These targets are usually executed 
-    before and after some main targets. They are: 
+    There exist several targets which are by default empty and which can be
+    used for execution of your tasks. These targets are usually executed
+    before and after some main targets. They are:
 
       -pre-init:                 called before initialization of project properties
       -post-init:                called after initialization of project properties
@@ -40,12 +48,12 @@
             </obfuscate>
         </target>
 
-    For list of available properties check the imported 
-    nbproject/build-impl.xml file. 
+    For list of available properties check the imported
+    nbproject/build-impl.xml file.
 
 
     Another way to customize the build is by overriding existing main targets.
-    The targets of interest are: 
+    The targets of interest are:
 
       -init-macrodef-javac:     defines macro for javac compilation
       -init-macrodef-junit:     defines macro for junit execution
@@ -53,7 +61,7 @@
       -init-macrodef-java:      defines macro for class execution
       -do-jar-with-manifest:    JAR building (if you are using a manifest)
       -do-jar-without-manifest: JAR building (if you are not using a manifest)
-      run:                      execution of project 
+      run:                      execution of project
       -javadoc-build:           Javadoc generation
       test-report:              JUnit report generation
 
@@ -65,10 +73,41 @@
             </exec>
         </target>
 
-    Notice that the overridden target depends on the jar target and not only on 
-    the compile target as the regular run target does. Again, for a list of available 
+    Notice that the overridden target depends on the jar target and not only on
+    the compile target as the regular run target does. Again, for a list of available
     properties which you can use, check the target you are overriding in the
-    nbproject/build-impl.xml file. 
+    nbproject/build-impl.xml file.
 
-    -->
+  -->
+  <target name="test-run-with-coverage" depends="compile-test">
+
+    <!-- Import the JaCoCo Ant Task -->
+    <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+      <classpath path="libs/jacoco/jacocoant.jar" />
+    </taskdef>
+
+    <!-- Run your unit tests, adding the JaCoCo agent -->
+    <jacoco:coverage destfile="${sonar.jacoco.reportPath}" xmlns:jacoco="antlib:org.jacoco.ant">
+      <junit fork="yes">
+
+        <classpath refid="test.run.classpath" />
+
+        <formatter type="xml" />
+        <batchtest todir="${sonar.surefire.reportsPath}">
+          <fileset dir="test">
+            <include name="**/*Test.java" />
+          </fileset>
+        </batchtest>
+      </junit>
+    </jacoco:coverage>
+  </target>
+
+  <target name="sonar" depends="test-run-with-coverage" unless="${sonar.disabled}">
+    <taskdef uri="antlib:org.sonar.ant" resource="org/sonar/ant/antlib.xml">
+      <classpath path="libs/sonar/sonar-ant-task-2.0.jar" />
+    </taskdef>
+
+    <!-- Execute Sonar -->
+    <sonar:sonar />
+  </target>
 </project>
